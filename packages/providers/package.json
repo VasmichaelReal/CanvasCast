@@ -1,0 +1,16 @@
+{
+  "name": "@canvascast/providers",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@canvascast/core": "^0.1.0",
+    "msedge-tts": "^2.1.1"
+  }
+}

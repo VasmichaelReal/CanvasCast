@@ -1,0 +1,32 @@
+{
+  "name": "canvascast",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "postinstall": "npm run db:generate",
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml down",
+    "db:generate": "npm run generate -w @canvascast/db",
+    "db:migrate": "npm run migrate -w @canvascast/db",
+    "dev": "concurrently -k -n web,worker -c blue,magenta \"npm run dev -w @canvascast/web\" \"npm run dev -w @canvascast/worker\"",
+    "build": "npm run build -w @canvascast/web",
+    "start": "concurrently -k -n web,worker \"npm run start -w @canvascast/web\" \"npm run start -w @canvascast/worker\"",
+    "test": "vitest run",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "concurrently": "^10.0.7",
+    "dotenv-cli": "^11.1.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}

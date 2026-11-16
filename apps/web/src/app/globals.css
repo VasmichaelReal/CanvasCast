@@ -1,0 +1,130 @@
+@import 'tailwindcss';
+
+/* Палітра: тепле «паперове» тло, чорнильний текст, теракотовий акцент.
+   Усі пари текст/тло мають контраст не нижче 7:1 (WCAG AAA для тексту). */
+:root {
+  --paper: #faf7f2;
+  --surface: #ffffff;
+  --ink: #1c1917;
+  --muted: #57534e;
+  --line: #d6d0c7;
+  --accent: #9a3412;
+  --accent-ink: #ffffff;
+  --accent-soft: #fdf1e7;
+  --danger: #b91c1c;
+  --ok: #166534;
+  --warn-bg: #fef3c7;
+  --warn-ink: #713f12;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #151311;
+    --surface: #211e1b;
+    --ink: #f5f0e8;
+    --muted: #c4bcb0;
+    --line: #4a443d;
+    --accent: #fdba74;
+    --accent-ink: #1c1917;
+    --accent-soft: #33261a;
+    --danger: #fca5a5;
+    --ok: #86efac;
+    --warn-bg: #3a2f10;
+    --warn-ink: #fde68a;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-ok: var(--ok);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-ink: var(--warn-ink);
+}
+
+html {
+  color-scheme: light dark;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+/* Добре видимий фокус для всіх інтерактивних елементів. */
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+@layer components {
+  /* Мінімум 48px заввишки — зручна ціль для дотику. */
+  .btn {
+    @apply inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-ink bg-surface px-5 py-2 text-base font-semibold text-ink no-underline transition-colors;
+  }
+  .btn:hover:not(:disabled) {
+    @apply bg-accent-soft;
+  }
+  .btn:disabled {
+    @apply cursor-not-allowed opacity-55;
+  }
+  .btn-primary {
+    @apply border-accent bg-accent text-accent-ink;
+  }
+  .btn-primary:hover:not(:disabled) {
+    @apply bg-accent opacity-90;
+  }
+  .btn-danger {
+    @apply border-danger text-danger;
+  }
+  .field {
+    @apply block min-h-12 w-full rounded-lg border-2 border-line bg-surface px-3 py-2 text-base text-ink;
+  }
+  .field:focus-visible {
+    @apply border-accent;
+  }
+  .label {
+    @apply mb-1 block text-base font-semibold;
+  }
+  .card {
+    @apply rounded-xl border border-line bg-surface p-5;
+  }
+  .hint {
+    @apply text-[0.95rem] text-muted;
+  }
+  .notice {
+    @apply rounded-lg bg-warn-bg px-4 py-3 text-warn-ink;
+  }
+  .link {
+    @apply font-semibold text-accent underline underline-offset-4;
+  }
+}
+
+.sr-only-focusable:not(:focus):not(:focus-within) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}

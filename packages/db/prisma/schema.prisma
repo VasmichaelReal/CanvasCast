@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Lang {
+  uk
+  en
+}
+
+enum DescriptionStatus {
+  pending
+  generating
+  ready
+  failed
+}
+
+enum JobType {
+  full // опис + озвучення
+  tts // лише озвучення (після ручної правки тексту)
+}
+
+enum JobStatus {
+  queued
+  running
+  done
+  failed
+}
+
+model Gallery {
+  id          String   @id @default(uuid())
+  name        String
+  lang        Lang     @default(uk)
+  viewToken   String   @unique
+  editToken   String   @unique
+  /// Зростає з кожною зміною вмісту; офлайн-копія порівнює з ним свою версію.
+  version     Int      @default(1)
+  /// Базова модерація: заблокована галерея не віддається відвідувачам.
+  blocked     Boolean  @default(false)
+  /// Момент, коли власник підтвердив право завантажувати зображення.
+  rightsConfirmedAt DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  paintings Painting[]
+}
+
+model Painting {
+  id        String   @id @default(uuid())
+  galleryId String
+  position  Int
+  imageKey  String
+  thumbKey  String
+  title     String?
+  author    String?
+  year      String?
+  technique String?
+  context   String?
+  createdAt DateTime @default(now())
+
+  gallery      Gallery         @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+  descriptions Description[]
+  jobs         GenerationJob[]
+
+  @@index([galleryId, position])
+}
+
+model Description {
+  id            String            @id @default(uuid())
+  paintingId    String
+  lang          Lang
+  text          String            @default("")
+  /// Текст правила людина — перегенерація його перезапише лише за явним запитом.
+  textEdited    Boolean           @default(false)
+  audioKey      String?
+  audioDuration Int?
+  /// Нотатки моделі про те, у чому вона не впевнена. Непорожній список = «перевірте».
+  uncertain     String[]          @default([])
+  status        DescriptionStatus @default(pending)
+  error         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  painting Painting @relation(fields: [paintingId], references: [id], onDelete: Cascade)
+
+  @@unique([paintingId, lang])
+}
+
+model GenerationJob {
+  id            String    @id @default(uuid())
+  paintingId    String
+  galleryId     String
+  descriptionId String
+  type          JobType
+  status        JobStatus @default(queued)
+  attempts      Int       @default(0)
+  error         String?
+  createdAt     DateTime  @default(now())
+  finishedAt    DateTime?
+
+  painting Painting @relation(fields: [paintingId], references: [id], onDelete: Cascade)
+
+  @@index([galleryId, createdAt])
+}
