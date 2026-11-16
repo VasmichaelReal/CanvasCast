@@ -1,6 +1,9 @@
+import path from 'node:path';
 import type { NextConfig } from 'next';
 
 const config: NextConfig = {
+  // Корінь монорепо: щоб збірка для хостингу підхопила пакети й рушій Prisma з кореневого node_modules.
+  outputFileTracingRoot: path.join(import.meta.dirname, '../..'),
   // Пакети монорепо постачаються як TypeScript-джерела.
   transpilePackages: [
     '@canvascast/core',

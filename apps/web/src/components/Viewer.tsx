@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Lang, PublicGallery, PublicPainting } from '@canvascast/core';
-import { formatTime } from '@/lib/client';
+import {
+  audioExtension,
+  descriptionAsText,
+  downloadFileName,
+  formatTime,
+  saveTextFile,
+} from '@/lib/client';
 import { STRINGS, type Strings } from '@/lib/strings';
 import {
   downloadGallery,
@@ -251,6 +257,37 @@ function PaintingView({
             .map((para, i) => (
               <p key={i}>{para}</p>
             ))}
+        </div>
+      </section>
+
+      <section aria-labelledby="download-heading" className="mt-8">
+        <h2 id="download-heading" className="text-2xl font-bold">
+          {t.downloadTitle}
+        </h2>
+        <p className="hint mt-1">{t.downloadHint}</p>
+        <div className="mt-3 flex flex-wrap gap-3">
+          {painting.audioUrl && (
+            <a
+              className="btn"
+              href={painting.audioUrl}
+              download={downloadFileName(title, audioExtension(painting.audioUrl))}
+            >
+              {t.downloadAudio}
+              {painting.audioDuration ? ` (${t.minutes(painting.audioDuration)})` : ''}
+            </a>
+          )}
+          <button
+            type="button"
+            className="btn"
+            onClick={() =>
+              saveTextFile(
+                downloadFileName(title, 'txt'),
+                descriptionAsText({ ...painting, title }),
+              )
+            }
+          >
+            {t.downloadText}
+          </button>
         </div>
       </section>
 

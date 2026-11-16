@@ -38,6 +38,10 @@ export interface Strings {
   offlineUpdate: string;
   offlineFailed: string;
   offlineRetry: string;
+  downloadTitle: string;
+  downloadHint: string;
+  downloadAudio: string;
+  downloadText: string;
 }
 
 const uk: Strings = {
@@ -77,6 +81,10 @@ const uk: Strings = {
   offlineUpdate: 'Оновити збережену копію',
   offlineFailed: 'Не вдалося зберегти гід. Перевірте з’єднання й вільне місце на пристрої.',
   offlineRetry: 'Спробувати знову',
+  downloadTitle: 'Завантажити опис',
+  downloadHint: 'Збережіть аудіозапис або текст опису цієї картини на свій пристрій.',
+  downloadAudio: 'Завантажити аудіо',
+  downloadText: 'Завантажити текст',
 };
 
 const en: Strings = {
@@ -116,6 +124,10 @@ const en: Strings = {
   offlineUpdate: 'Update the saved copy',
   offlineFailed: 'Could not save the guide. Check your connection and free space on the device.',
   offlineRetry: 'Try again',
+  downloadTitle: 'Download the description',
+  downloadHint: 'Save the audio recording or the text of this description to your device.',
+  downloadAudio: 'Download audio',
+  downloadText: 'Download text',
 };
 
 export const STRINGS: Record<Lang, Strings> = { uk, en };

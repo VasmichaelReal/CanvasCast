@@ -14,7 +14,8 @@ export async function POST(req: Request, { params }: Ctx) {
   const gallery = await findGalleryForEdit((await params).editToken);
   if (!gallery) return NOT_FOUND();
 
-  const blocked = await limited(`upload:${clientIp(req)}`, 40, 600);
+  // Редактор надсилає по одному файлу на запит, тож ліміт рахує файли.
+  const blocked = await limited(`upload:${clientIp(req)}`, 150, 600);
   if (blocked) return blocked;
 
   let form: FormData;

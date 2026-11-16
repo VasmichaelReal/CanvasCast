@@ -13,6 +13,8 @@ function int(name: string, fallback: number): number {
 export const env = {
   get redisUrl() { return str('REDIS_URL', 'redis://localhost:6380'); },
   get appUrl() { return str('APP_URL').replace(/\/+$/, ''); },
+  /** Адреса воркера на хостингу, який присипляє сервіси без запитів. Порожньо = не будити. */
+  get workerUrl() { return str('WORKER_URL').replace(/\/+$/, ''); },
 
   get s3() {
     return {

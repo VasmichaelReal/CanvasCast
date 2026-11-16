@@ -11,7 +11,8 @@
     "migrate": "dotenv -e ../../.env -- prisma migrate deploy",
     "migrate:dev": "dotenv -e ../../.env -- prisma migrate dev",
     "studio": "dotenv -e ../../.env -- prisma studio",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "migrate:prod": "dotenv -e ../../.env.production -- sh -c 'DATABASE_URL=\"${DATABASE_URL_UNPOOLED:-$DATABASE_URL}\" prisma migrate deploy'"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3"

@@ -14,6 +14,16 @@ export interface GenerationJobData {
 /** Скільки разів BullMQ пробує задачу, перш ніж визнати її проваленою. */
 export const GENERATION_ATTEMPTS = 5;
 
+/**
+ * Налаштування воркера, що зменшують кількість команд до Redis у простої
+ * (хмарні безкоштовні тарифи рахують команди). Нові задачі однаково
+ * підхоплюються миттєво: довше лише блокуюче очікування порожньої черги.
+ */
+export const IDLE_FRIENDLY_WORKER_OPTIONS = {
+  drainDelay: 30, // секунд
+  stalledInterval: 120_000,
+} as const;
+
 export function createRedis(): Redis {
   // maxRetriesPerRequest: null — вимога BullMQ для блокуючих з'єднань воркера.
   return new Redis(env.redisUrl, { maxRetriesPerRequest: null });

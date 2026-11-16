@@ -15,6 +15,7 @@
     "infra:down": "docker compose -f infra/docker-compose.yml down",
     "db:generate": "npm run generate -w @canvascast/db",
     "db:migrate": "npm run migrate -w @canvascast/db",
+    "db:migrate:prod": "npm run migrate:prod -w @canvascast/db",
     "dev": "concurrently -k -n web,worker -c blue,magenta \"npm run dev -w @canvascast/web\" \"npm run dev -w @canvascast/worker\"",
     "build": "npm run build -w @canvascast/web",
     "start": "concurrently -k -n web,worker \"npm run start -w @canvascast/web\" \"npm run start -w @canvascast/worker\"",
@@ -28,5 +29,9 @@
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
+  },
+  "dependencies": {
+    "@neon/config": "^1.14.0",
+    "@neon/env": "^2.1.3"
   }
 }

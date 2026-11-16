@@ -4,15 +4,20 @@ import { prisma } from '@canvascast/db';
 import { deletePrefix } from '@canvascast/storage';
 import { NOT_FOUND, baseUrl, findGalleryForEdit, jsonError, readJson } from '@/lib/api';
 import { editorGallery } from '@/lib/dto';
+import { wakeWorker } from '@/lib/generation';
 
 type Ctx = { params: Promise<{ editToken: string }> };
 
 export async function GET(req: Request, { params }: Ctx) {
   const gallery = await findGalleryForEdit((await params).editToken);
   if (!gallery) return NOT_FOUND();
-  return NextResponse.json(await editorGallery(gallery, baseUrl(req)), {
-    headers: { 'Cache-Control': 'no-store' },
-  });
+  const data = await editorGallery(gallery, baseUrl(req));
+  // Поки редактор чекає на генерацію, не даємо воркеру заснути.
+  const working = data.paintings.some(
+    (p) => p.description?.status === 'pending' || p.description?.status === 'generating',
+  );
+  if (working) await wakeWorker();
+  return NextResponse.json(data, { headers: { 'Cache-Control': 'no-store' } });
 }
 
 export async function PATCH(req: Request, { params }: Ctx) {

@@ -2,9 +2,21 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { EditorGallery, EditorPainting } from '@/lib/dto';
-import { ApiError, api, forgetGallery, jsonBody, rememberGallery } from '@/lib/client';
+import {
+  ApiError,
+  api,
+  audioExtension,
+  descriptionAsText,
+  downloadFileName,
+  forgetGallery,
+  jsonBody,
+  prepareImageForUpload,
+  rememberGallery,
+  saveTextFile,
+} from '@/lib/client';
 
 const POLL_MS = 2500;
+const MAX_FILES = 20;
 
 const isWorking = (p: EditorPainting) =>
   p.description?.status === 'pending' || p.description?.status === 'generating';
@@ -300,34 +312,59 @@ function UploadSection({ base, onGallery, announce }: SectionProps) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [rejected, setRejected] = useState<Array<{ name: string; reason: string }>>([]);
+  const [progress, setProgress] = useState('');
 
   async function upload(files: FileList | null) {
     if (!files || files.length === 0) return;
+    const list = Array.from(files);
+    setRejected([]);
+    if (list.length > MAX_FILES) {
+      setMessage(`За один раз можна вибрати до ${MAX_FILES} зображень`);
+      if (input.current) input.current.value = '';
+      return;
+    }
     setBusy(true);
     setMessage(null);
-    setRejected([]);
-    const form = new FormData();
-    for (const file of files) form.append('files', file);
-    try {
-      const res = await api<{ added: number; rejected: typeof rejected; gallery: EditorGallery }>(
-        `${base}/paintings`,
-        { method: 'POST', body: form },
-      );
-      onGallery(res.gallery);
-      setRejected(res.rejected);
-      const text = `Додано картин: ${res.added}`;
-      setMessage(text);
-      announce(text);
-    } catch (err) {
-      const data = err instanceof ApiError ? (err.data as { rejected?: typeof rejected } | null) : null;
-      setRejected(data?.rejected ?? []);
-      const text = err instanceof Error ? err.message : 'Не вдалося завантажити файли';
-      setMessage(data?.rejected?.length ? 'Жоден файл не вдалося додати' : text);
-      announce('Помилка завантаження');
-    } finally {
-      setBusy(false);
-      if (input.current) input.current.value = '';
+    type Rejected = typeof rejected;
+    let added = 0;
+    const failed: Rejected = [];
+    // По одному файлу на запит: так не впираємося в ліміт розміру запиту на хостингу,
+    // а одне невдале фото не зриває решту.
+    for (const [i, file] of list.entries()) {
+      setProgress(`Завантажуємо ${i + 1} з ${list.length}…`);
+      try {
+        const form = new FormData();
+        form.append('files', await prepareImageForUpload(file), file.name);
+        const res = await api<{ added: number; rejected: Rejected; gallery: EditorGallery }>(
+          `${base}/paintings`,
+          { method: 'POST', body: form },
+        );
+        added += res.added;
+        failed.push(...res.rejected);
+        onGallery(res.gallery);
+      } catch (err) {
+        const data = err instanceof ApiError ? (err.data as { rejected?: Rejected } | null) : null;
+        if (data?.rejected?.length) failed.push(...data.rejected);
+        else {
+          const tooBig = err instanceof ApiError && err.status === 413;
+          failed.push({
+            name: file.name,
+            reason: tooBig
+              ? 'Файл завеликий для завантаження'
+              : err instanceof Error
+                ? err.message
+                : 'Не вдалося завантажити файл',
+          });
+        }
+      }
     }
+    setRejected(failed);
+    const text = added > 0 ? `Додано картин: ${added}` : 'Жоден файл не вдалося додати';
+    setMessage(text);
+    announce(added > 0 ? text : 'Помилка завантаження');
+    setBusy(false);
+    setProgress('');
+    if (input.current) input.current.value = '';
   }
 
   return (
@@ -350,11 +387,12 @@ function UploadSection({ base, onGallery, announce }: SectionProps) {
         className="field file:mr-4 file:cursor-pointer file:rounded-md file:border-0 file:bg-accent file:px-4 file:py-2 file:font-semibold file:text-accent-ink"
       />
       <p id="upload-hint" className="hint mt-2">
-        JPEG, PNG або WebP, до 15 МБ кожне, до 20 файлів за раз. Знімайте картину рівно, без
+        JPEG, PNG або WebP, до 20 файлів за раз. Великі фото автоматично зменшуються перед
+        відправкою. Знімайте картину рівно, без
         відблисків — від якості фото залежить якість опису.
       </p>
       <div role="status" className="mt-3 font-semibold empty:hidden">
-        {busy ? 'Завантажуємо й обробляємо зображення…' : message}
+        {busy ? progress || 'Завантажуємо…' : message}
       </div>
       {rejected.length > 0 && (
         <ul className="mt-2 list-disc pl-6 text-danger">
@@ -732,6 +770,32 @@ function PaintingCard({
                   aria-labelledby={`p-${uid}-audio-label p-${uid}-title`}
                   className="w-full"
                 />
+              </div>
+            )}
+
+            {d.text.trim() && (
+              <div className="mt-4 flex flex-wrap gap-3">
+                {d.audioUrl && (
+                  <a
+                    className="btn"
+                    href={d.audioUrl}
+                    download={downloadFileName(name, audioExtension(d.audioUrl))}
+                  >
+                    Завантажити аудіо
+                  </a>
+                )}
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() =>
+                    saveTextFile(
+                      downloadFileName(name, 'txt'),
+                      descriptionAsText({ ...painting, title: name, text: d.text }),
+                    )
+                  }
+                >
+                  Завантажити текст
+                </button>
               </div>
             )}
           </div>

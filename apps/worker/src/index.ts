@@ -1,3 +1,4 @@
+import { createServer } from 'node:http';
 import { UnrecoverableError, Worker, type ConnectionOptions } from 'bullmq';
 import { env } from '@canvascast/core';
 import { prisma } from '@canvascast/db';
@@ -5,6 +6,7 @@ import { ProviderError, createLLMProvider, createTtsProvider } from '@canvascast
 import {
   GENERATION_ATTEMPTS,
   GENERATION_QUEUE,
+  IDLE_FRIENDLY_WORKER_OPTIONS,
   createRedis,
   type GenerationJobData,
 } from '@canvascast/queue';
@@ -50,6 +52,7 @@ const worker = new Worker<GenerationJobData>(
   {
     connection: createRedis() as unknown as ConnectionOptions,
     concurrency: 2,
+    ...IDLE_FRIENDLY_WORKER_OPTIONS,
     // Безкоштовні тарифи провайдерів мають ліміт запитів на хвилину — не перевищуємо його.
     limiter: { max: env.generationsPerMinute, duration: 60_000 },
   },
@@ -64,8 +67,19 @@ worker.on('ready', () => {
 worker.on('completed', (job) => console.log(`[worker] задача ${job.data.jobId} виконана`));
 worker.on('error', (err) => console.error('[worker] помилка:', err.message));
 
+// Хостинги на кшталт Render чекають HTTP-порт і присипляють сервіс без запитів.
+// Веб-застосунок звертається сюди, коли ставить задачу, — це будить воркер.
+const port = Number.parseInt(process.env.PORT ?? '', 10);
+const health = Number.isFinite(port)
+  ? createServer((_req, res) => {
+      res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' });
+      res.end('ok');
+    }).listen(port, () => console.log(`[worker] health-ендпоінт на порту ${port}`))
+  : null;
+
 async function shutdown() {
   console.log('[worker] зупинка…');
+  health?.close();
   await worker.close();
   await prisma.$disconnect();
   process.exit(0);

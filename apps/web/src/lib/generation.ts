@@ -68,5 +68,22 @@ export async function startGeneration(
     ]);
     return { ok: false, status: 503, message };
   }
+  await wakeWorker();
   return { ok: true, started: true };
+}
+
+let lastWake = 0;
+
+/**
+ * Будить воркер на хостингу, що присипляє сервіси без запитів (WORKER_URL).
+ * Відповіді не чекаємо: достатньо, щоб запит дійшов. Локально нічого не робить.
+ */
+export async function wakeWorker(): Promise<void> {
+  if (!env.workerUrl || Date.now() - lastWake < 30_000) return;
+  lastWake = Date.now();
+  try {
+    await fetch(env.workerUrl, { signal: AbortSignal.timeout(1500), cache: 'no-store' });
+  } catch {
+    /* воркер ще прокидається або недоступний — задача чекає в черзі */
+  }
 }
