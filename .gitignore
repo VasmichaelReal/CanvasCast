@@ -12,3 +12,6 @@ claude.err
 coverage/
 .turbo/
 .neon
+.vercel
+.env*
+!.env.example
