@@ -17,7 +17,7 @@
     "db:migrate": "npm run migrate -w @canvascast/db",
     "db:migrate:prod": "npm run migrate:prod -w @canvascast/db",
     "dev": "concurrently -k -n web,worker -c blue,magenta \"npm run dev -w @canvascast/web\" \"npm run dev -w @canvascast/worker\"",
-    "build": "npm run build -w @canvascast/web",
+    "build": "dotenv -e .env -- npm run build -w @canvascast/web",
     "start": "concurrently -k -n web,worker \"npm run start -w @canvascast/web\" \"npm run start -w @canvascast/worker\"",
     "test": "vitest run",
     "typecheck": "npm run typecheck --workspaces --if-present"
