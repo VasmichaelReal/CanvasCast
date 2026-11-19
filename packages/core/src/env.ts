@@ -1,7 +1,8 @@
 /** Читання змінних середовища в одному місці, з дефолтами для локальної розробки. */
 
 function str(name: string, fallback = ''): string {
-  const v = process.env[name];
+  // Хостинги часто зберігають значення разом із лапками чи пробілами, вставленими з консолі провайдера.
+  const v = process.env[name]?.trim().replace(/^["']+|["']+$/g, '');
   return v === undefined || v === '' ? fallback : v;
 }
 
