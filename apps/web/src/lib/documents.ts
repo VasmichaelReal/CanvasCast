@@ -22,14 +22,15 @@ export interface DocumentImage {
 
 export type ParsedDocument =
   | { kind: 'text'; text: string; images: DocumentImage[]; truncated: boolean }
-  | { kind: 'file'; blob: Blob; mimeType: string };
+  /** Скан без текстового шару: модель читає PDF сама, зображення пронумеровано за порядком. */
+  | { kind: 'file'; blob: Blob; mimeType: string; images: DocumentImage[] };
 
 /** Розширення, які приймає імпорт (для атрибута accept). */
 export const IMPORT_ACCEPT =
   '.pdf,.docx,.odt,.pptx,.odp,.xlsx,.ods,.csv,.tsv,.txt,.md,.html,.htm,.json,' +
   'application/pdf,text/plain,text/csv,text/markdown,text/html';
 
-/** Тіло запиту на безкоштовному хостингу обмежене 4,5 МБ, а PDF іде як є. */
+/** Тіло запиту на безкоштовному хостингу обмежене 4,5 МБ, а скан PDF іде як є. */
 export const MAX_PDF_BYTES = 4 * 1024 * 1024;
 const MAX_IMAGES = 60;
 /** Дрібні зображення — значки, лінії, логотипи — фото картин не бувають. */
@@ -47,12 +48,7 @@ export class DocumentError extends Error {}
 export async function readDocument(file: File): Promise<ParsedDocument> {
   const ext = extensionOf(file.name);
   if (ext === 'pdf' || file.type === 'application/pdf') {
-    if (file.size > MAX_PDF_BYTES) {
-      throw new DocumentError(
-        'PDF більший за 4 МБ. Збережіть документ у форматі DOCX або стисніть PDF і спробуйте знову.',
-      );
-    }
-    return { kind: 'file', blob: file, mimeType: 'application/pdf' };
+    return readPdf(new Uint8Array(await file.arrayBuffer()), file);
   }
   if (ext === 'doc' || ext === 'xls' || ext === 'ppt' || ext === 'rtf') {
     throw new DocumentError(`Формат .${ext} не підтримується. Збережіть документ як DOCX, XLSX або PDF.`);
@@ -66,6 +62,34 @@ export async function readDocument(file: File): Promise<ParsedDocument> {
   }
   throw new DocumentError(
     'Цей формат не підтримується. Підійдуть PDF, DOCX, ODT, PPTX, XLSX, ODS, CSV, TXT або Markdown.',
+  );
+}
+
+/** Менше літер — вважаємо PDF сканом без текстового шару. */
+const MIN_PDF_LETTERS = 40;
+
+/**
+ * PDF з текстом розбираємо самі (текст + фото, як DOCX) — тоді розмір файлу не
+ * важливий. Скан без тексту модель мусить прочитати сама, тож він іде файлом.
+ */
+export async function readPdf(bytes: Uint8Array, original: Blob): Promise<ParsedDocument> {
+  let parsed;
+  try {
+    const { parsePdf } = await import('./pdf');
+    parsed = await parsePdf(bytes, { maxImages: MAX_IMAGES });
+  } catch (err) {
+    if ((err as { name?: string } | null)?.name === 'PasswordException') {
+      throw new DocumentError('PDF захищено паролем. Зніміть захист і спробуйте знову.');
+    }
+    throw new DocumentError('Не вдалося прочитати PDF: файл пошкоджений або має незвичний формат.');
+  }
+  if (parsed.letters >= MIN_PDF_LETTERS) return finish(parsed.text, parsed.images);
+  if (original.size <= MAX_PDF_BYTES) {
+    return { kind: 'file', blob: original, mimeType: 'application/pdf', images: parsed.images };
+  }
+  // Великий скан не розбиваємо на «фото»: сторінки-скани — не фото творів.
+  throw new DocumentError(
+    'Схоже, це скан без текстового шару, і він більший за 4 МБ. Стисніть PDF або розпізнайте текст (OCR) і спробуйте знову.',
   );
 }
 

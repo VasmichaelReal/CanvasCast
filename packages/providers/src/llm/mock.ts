@@ -50,8 +50,8 @@ export class MockLLM implements LLMProvider {
     if (input.text === undefined) {
       const note =
         input.lang === 'en'
-          ? 'Demo mode cannot read PDF files. Add GEMINI_API_KEY or import a DOCX/TXT document.'
-          : 'У демо-режимі PDF не читається. Додайте GEMINI_API_KEY або імпортуйте документ DOCX чи TXT.';
+          ? 'Demo mode cannot read scanned PDFs. Add GEMINI_API_KEY or import a document with a text layer.'
+          : 'У демо-режимі скани PDF не розпізнаються. Додайте GEMINI_API_KEY або імпортуйте документ із текстом.';
       return { paintings: [], notes: [note] };
     }
 

@@ -97,14 +97,10 @@ export function ImportSection({
       const doc = await readDocument(file);
       const form = new FormData();
       form.append('fileName', file.name);
-      let images: Array<{ name: string; blob: Blob }> = [];
-      if (doc.kind === 'text') {
-        form.append('text', doc.text);
-        form.append('imageCount', String(doc.images.length));
-        images = doc.images;
-      } else {
-        form.append('file', doc.blob, file.name);
-      }
+      const images = doc.images;
+      form.append('imageCount', String(images.length));
+      if (doc.kind === 'text') form.append('text', doc.text);
+      else form.append('file', doc.blob, file.name);
 
       setPhase('thinking');
       announce('Документ надіслано, модель розпізнає картини');
@@ -284,7 +280,8 @@ export function ImportSection({
         className="field file:mr-4 file:cursor-pointer file:rounded-md file:border-0 file:bg-accent file:px-4 file:py-2 file:font-semibold file:text-accent-ink"
       />
       <p id="import-hint" className="hint mt-2">
-        DOCX, ODT, PPTX, XLSX, ODS, PDF (до 4 МБ), CSV, TXT або Markdown. Модель може помилятися —
+        DOCX, ODT, PPTX, XLSX, ODS, PDF, CSV, TXT або Markdown. Скани PDF без текстового шару — до
+        4 МБ. Модель може помилятися —
         звіряйте відомості з документом.
       </p>
 

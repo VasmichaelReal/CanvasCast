@@ -73,9 +73,11 @@ export function buildImportUserPrompt(opts: { text?: string; imageCount: number;
     opts.fileName ? `Файл: ${opts.fileName}` : '',
     // Дублюємо вимогу мови тут: легші моделі інакше лишають контекст мовою документа.
     opts.lang ? `Поля context і notes пиши ${LANGUAGE_NAME[opts.lang]} (перекладай, якщо документ іншою мовою); назву, автора, рік і техніку лишай як у документі.` : '',
-    opts.imageCount > 0
-      ? `У документі ${opts.imageCount} зображень, їхні місця позначено маркерами ${imageMarker(1)}…${imageMarker(opts.imageCount)}.`
-      : 'Зображень із документа не витягнуто — imageIndex завжди null.',
+    opts.imageCount === 0
+      ? 'Зображень із документа не витягнуто — imageIndex завжди null.'
+      : opts.text === undefined
+        ? `Зображення в PDF пронумеровано від 1 до ${opts.imageCount} у порядку появи: сторінка за сторінкою, на сторінці — згори вниз. Зображення менші за значок не враховано. Скан цілої сторінки тексту — не фото твору, для нього imageIndex null.`
+        : `У документі ${opts.imageCount} зображень, їхні місця позначено маркерами ${imageMarker(1)}…${imageMarker(opts.imageCount)}.`,
   ]
     .filter(Boolean)
     .join('\n');

@@ -20,7 +20,7 @@ import zipfile
 from html import escape
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 OUT = Path(__file__).resolve().parent
 TMP = Path(tempfile.mkdtemp(prefix="cc-testdocs-"))
@@ -366,6 +366,25 @@ def main():
         [str(n), f"Етюд №{n}", "Остап Мирошник", str(1990 + n % 30), "Папір, вугілля"] for n in range(1, 76)
     ]
     sheet_from_csv(many, "many", ("xlsx", "25-many-works.xlsx"))
+
+    # 27: «скан» — сторінки-зображення з текстом, без текстового шару.
+    # Шрифт Pillow за замовчуванням не має кирилиці — потрібен системний TTF.
+    font_path = next((p for p in ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                                  "/usr/share/fonts/TTF/DejaVuSans.ttf",
+                                  "/Library/Fonts/Arial Unicode.ttf") if Path(p).exists()), None)
+    if not font_path:
+        sys.exit("Для 27-scanned.pdf потрібен шрифт DejaVuSans (пакет fonts-dejavu)")
+    font = lambda size: ImageFont.truetype(font_path, size)
+    scans = []
+    for w in WORKS[:3]:
+        img = Image.new("RGB", (1240, 1754), (248, 246, 240))
+        d = ImageDraw.Draw(img)
+        d.text((120, 160), f"{w['title']}, {w['year']}", fill=(20, 20, 20), font=font(56))
+        d.text((120, 260), w["technique"], fill=(40, 40, 40), font=font(40))
+        d.text((120, 340), w["context"][:70], fill=(40, 40, 40), font=font(32))
+        d.text((120, 390), w["context"][70:140], fill=(40, 40, 40), font=font(32))
+        scans.append(img)
+    scans[0].save(OUT / "27-scanned.pdf", save_all=True, append_images=scans[1:], resolution=150, quality=80)
 
     # 26: лише фото, без жодного тексту.
     html_to("photos", photos_only_html(), ("docx", "26-photos-only.docx"))

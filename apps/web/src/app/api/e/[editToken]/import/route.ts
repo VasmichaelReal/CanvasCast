@@ -16,7 +16,8 @@ const MAX_IMAGE_COUNT = 60;
  * зберігає — картки повертаються власнику на перевірку, а додає їх уже редактор.
  *
  * Форма: `text` (текст, витягнутий у браузері, з маркерами [[IMAGE n]]) і `imageCount`
- * — або `file` (PDF, його модель читає сама). Плюс `fileName` для контексту.
+ * — або `file` (скан PDF, його модель читає сама) і `imageCount` — скільки зображень
+ * браузер витягнув із нього за порядком. Плюс `fileName` для контексту.
  */
 export async function POST(req: Request, { params }: Ctx) {
   const gallery = await findGalleryForEdit((await params).editToken);
@@ -51,7 +52,7 @@ export async function POST(req: Request, { params }: Ctx) {
     if (data.subarray(0, 5).toString('latin1') !== '%PDF-') {
       return jsonError(400, 'Файлом можна надіслати лише PDF');
     }
-    input = { lang: gallery.lang, fileName, file: { mimeType: 'application/pdf', data }, imageCount: 0 };
+    input = { lang: gallery.lang, fileName, file: { mimeType: 'application/pdf', data }, imageCount };
   } else {
     return jsonError(400, 'Не надано документа');
   }
