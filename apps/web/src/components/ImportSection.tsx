@@ -256,15 +256,14 @@ export function ImportSection({
           : summary;
 
   return (
-    <section aria-labelledby="import-heading" className="card mt-6">
-      <h2 id="import-heading" className="text-2xl font-bold">
+    <section aria-labelledby="import-heading" className="section">
+      <h2 id="import-heading" className="text-2xl">
         Імпорт із документа
       </h2>
       <p className="hint mt-1">
-        Каталог, експлікація, таблиця чи презентація: модель випише з документа назви, авторів,
-        роки, техніку й контекст і заповнить картки картин. Фото з документа підставляються
-        автоматично. Перед додаванням ви перевірите й виправите кожну картку — описи генеруються
-        лише тоді, коли ви їх запустите.
+        Каталог, експлікація, таблиця чи презентація. З документа буде виписано назви, авторів,
+        роки, техніку й контекст, а фото з нього підставляться самі. Кожну картку ви перевірите
+        перед додаванням.
       </p>
       <label htmlFor="import-input" className="label mt-4">
         Документ
@@ -277,24 +276,23 @@ export function ImportSection({
         disabled={busy}
         aria-describedby="import-hint"
         onChange={(e) => void importFile(e.target.files?.[0])}
-        className="field file:mr-4 file:cursor-pointer file:rounded-md file:border-0 file:bg-accent file:px-4 file:py-2 file:font-semibold file:text-accent-ink"
+        className="file-field"
       />
       <p id="import-hint" className="hint mt-2">
         DOCX, ODT, PPTX, XLSX, ODS, PDF, CSV, TXT або Markdown. Скани PDF без текстового шару — до
-        4 МБ. Модель може помилятися —
-        звіряйте відомості з документом.
+        4 МБ. Звіряйте результат із документом: розпізнавання може помилятися.
       </p>
 
-      <div role="status" className="mt-3 font-semibold empty:hidden">
+      <div role="status" className="mt-3 font-medium empty:hidden">
         {status}
       </div>
-      <div role="alert" className="mt-2 font-semibold text-danger empty:hidden">
+      <div role="alert" className="mt-2 font-medium text-danger empty:hidden">
         {error}
       </div>
 
       {notes.length > 0 && (
         <div className="notice mt-4">
-          <p className="font-semibold">Зверніть увагу:</p>
+          <p className="font-medium">Зверніть увагу:</p>
           <ul className="mt-1 list-disc pl-6">
             {notes.map((n, i) => (
               <li key={i}>{n}</li>
@@ -317,7 +315,9 @@ export function ImportSection({
             </div>
           )}
 
-          <h3 className="mt-6 text-xl font-bold">Картки на перевірку ({drafts.length})</h3>
+          <h3 className="mt-8 flex items-baseline gap-3 text-xl">
+            Картки на перевірку <span className="section-num">{drafts.length}</span>
+          </h3>
           <ol className="mt-3 space-y-5">
             {drafts.map((d, i) => (
               <li key={d.key}>
@@ -382,9 +382,9 @@ function DraftCard({
   const setFact = (key: FactKey, value: string) => onChange({ facts: { ...d.facts, [key]: value } });
 
   return (
-    <article aria-labelledby={`${uid}-title`} className={`rounded-lg border-2 p-4 ${d.error ? 'border-danger' : 'border-line'}`}>
+    <article aria-labelledby={`${uid}-title`} className={`border bg-surface p-4 ${d.error ? 'border-danger border-l-4' : 'border-line'}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <h4 id={`${uid}-title`} className="text-lg font-bold">
+        <h4 id={`${uid}-title`} className="text-lg">
           {index + 1}. {name}
         </h4>
         <button type="button" className="btn" onClick={onRemove} disabled={disabled} aria-label={`Прибрати картку: ${name}`}>
@@ -399,17 +399,17 @@ function DraftCard({
             <img
               src={d.previewUrl}
               alt={`Фото для картки: ${name}`}
-              className="max-h-56 w-full rounded-lg border border-line object-contain md:w-48"
+              className="max-h-56 w-full border border-line object-contain md:w-48"
             />
           ) : existing ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={existing.thumbUrl}
               alt={`Фото наявної картини, яку буде заповнено: ${existing.title || name}`}
-              className="max-h-56 w-full rounded-lg border border-line object-contain md:w-48"
+              className="max-h-56 w-full border border-line object-contain md:w-48"
             />
           ) : (
-            <p className="hint rounded-lg border border-dashed border-line p-4">Фото немає</p>
+            <p className="hint flex aspect-[4/3] items-center justify-center border border-dashed border-line p-4 md:w-48">Фото немає</p>
           )}
 
           <label htmlFor={`${uid}-target`} className="label mt-3">
@@ -441,7 +441,7 @@ function DraftCard({
                 accept="image/jpeg,image/png,image/webp"
                 disabled={disabled}
                 onChange={(e) => onImage(e.target.files?.[0])}
-                className="w-full text-sm"
+                className="file-field text-sm"
               />
             </>
           )}
@@ -481,7 +481,7 @@ function DraftCard({
       </div>
 
       {d.error && (
-        <p role="alert" className="mt-3 font-semibold text-danger">
+        <p role="alert" className="mt-3 font-medium text-danger">
           {d.error}
         </p>
       )}

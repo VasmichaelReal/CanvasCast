@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Художня аудіодескрипція картин для людей із порушеннями зору.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#faf7f2',
-    theme_color: '#9a3412',
+    background_color: '#fbfbfa',
+    theme_color: '#111111',
     icons: [{ src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],
   };
 }

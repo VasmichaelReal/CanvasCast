@@ -16,6 +16,7 @@ import {
   readSavedVersion,
   registerServiceWorker,
 } from '@/lib/offline';
+import { Masthead } from './Masthead';
 
 type LoadState = 'loading' | 'ready' | 'notfound' | 'error';
 
@@ -86,15 +87,20 @@ export function Viewer({ viewToken }: { viewToken: string }) {
 
   if (state === 'loading') {
     return (
-      <main id="main" className="mx-auto max-w-2xl px-5 py-10">
-        <p role="status">Завантаження… / Loading…</p>
-      </main>
+      <>
+        <Masthead home={false} width="max-w-2xl" />
+        <main id="main" className="mx-auto max-w-2xl px-5 py-10">
+          <p role="status" className="text-muted">Завантаження… / Loading…</p>
+        </main>
+      </>
     );
   }
   if (state === 'notfound' || state === 'error' || !gallery) {
     return (
+      <>
+      <Masthead home={false} width="max-w-2xl" />
       <main id="main" className="mx-auto max-w-2xl px-5 py-10">
-        <h1 className="text-3xl font-bold">CanvasCast</h1>
+        <h1 className="text-3xl">Аудіогід / Audio guide</h1>
         <div role="alert" className="notice mt-6 space-y-2">
           {state === 'notfound' ? (
             <>
@@ -114,13 +120,16 @@ export function Viewer({ viewToken }: { viewToken: string }) {
           </button>
         )}
       </main>
+      </>
     );
   }
 
   const paintings = gallery.paintings;
 
   return (
-    <main id="main" lang={lang} className="mx-auto max-w-2xl px-5 py-8">
+    <div lang={lang}>
+    <Masthead home={false} width="max-w-2xl" note={t.audioGuide} />
+    <main id="main" className="mx-auto max-w-2xl px-5 pb-16 pt-6">
       {painting ? (
         <PaintingView
           key={painting.id}
@@ -136,8 +145,7 @@ export function Viewer({ viewToken }: { viewToken: string }) {
         />
       ) : (
         <>
-          <p className="text-base font-semibold uppercase tracking-wide text-accent">{t.audioGuide}</p>
-          <h1 ref={heading} tabIndex={-1} className="mt-1 text-3xl font-bold leading-tight outline-none">
+          <h1 ref={heading} tabIndex={-1} className="mt-4 text-4xl leading-tight outline-none">
             {gallery.name}
           </h1>
 
@@ -146,15 +154,15 @@ export function Viewer({ viewToken }: { viewToken: string }) {
           ) : (
             <>
               <OfflinePanel gallery={gallery} viewToken={viewToken} t={t} />
-              <h2 id="list-heading" className="mt-8 text-2xl font-bold">
-                {t.paintings} ({paintings.length})
+              <h2 id="list-heading" className="section-title mt-10">
+                {t.paintings} <span className="section-num">{paintings.length}</span>
               </h2>
-              <ol aria-labelledby="list-heading" className="mt-3 space-y-3">
+              <ol aria-labelledby="list-heading" className="mt-3 border-t border-ink">
                 {paintings.map((p, i) => (
-                  <li key={p.id}>
+                  <li key={p.id} className="border-b border-line">
                     <a
                       href={`#p=${encodeURIComponent(p.id)}`}
-                      className="card flex min-h-20 items-center gap-4 text-ink no-underline hover:bg-accent-soft"
+                      className="group flex min-h-20 items-center gap-4 py-3 text-ink no-underline hover:bg-accent-soft"
                     >
                       {/* Мініатюра декоративна: назва й автор уже є в тексті посилання. */}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -162,11 +170,14 @@ export function Viewer({ viewToken }: { viewToken: string }) {
                         src={p.thumbUrl}
                         alt=""
                         loading="lazy"
-                        className="size-16 shrink-0 rounded-md border border-line object-cover"
+                        className="size-16 shrink-0 object-cover"
                       />
-                      <span className="min-w-0">
-                        <span className="block text-lg font-bold">
-                          {i + 1}. {p.title ?? t.paintingN(i + 1)}
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-serif text-lg font-semibold leading-snug">
+                          <span className="mr-2 font-sans text-base font-normal tabular-nums text-muted">
+                            {i + 1}.
+                          </span>
+                          {p.title ?? t.paintingN(i + 1)}
                         </span>
                         {(p.author || p.audioDuration) && (
                           <span className="block text-muted">
@@ -175,6 +186,9 @@ export function Viewer({ viewToken }: { viewToken: string }) {
                               .join(' · ')}
                           </span>
                         )}
+                      </span>
+                      <span aria-hidden="true" className="pr-2 text-xl text-muted group-hover:text-accent">
+                        →
                       </span>
                     </a>
                   </li>
@@ -185,6 +199,7 @@ export function Viewer({ viewToken }: { viewToken: string }) {
         </>
       )}
     </main>
+    </div>
   );
 }
 
@@ -222,12 +237,12 @@ function PaintingView({
         </a>
       </nav>
 
-      <p className="mt-3 text-muted">{t.position(index + 1, total)}</p>
+      <p className="mt-4 text-[0.95rem] tabular-nums text-muted">{t.position(index + 1, total)}</p>
       <h1
         id="painting-title"
         ref={headingRef}
         tabIndex={-1}
-        className="text-3xl font-bold leading-tight outline-none"
+        className="mt-1 text-4xl leading-tight outline-none"
       >
         {title}
       </h1>
@@ -246,11 +261,11 @@ function PaintingView({
         <SpeechFallback text={painting.text} lang={lang} t={t} />
       )}
 
-      <section aria-labelledby="text-heading" className="mt-8">
-        <h2 id="text-heading" className="text-2xl font-bold">
+      <section aria-labelledby="text-heading" className="section mt-12">
+        <h2 id="text-heading" className="text-2xl">
           {t.description}
         </h2>
-        <div className="mt-3 space-y-4 text-lg leading-relaxed">
+        <div className="mt-4 space-y-5 font-serif text-[1.1875rem] leading-[1.75]">
           {painting.text
             .split(/\n+/)
             .filter((para) => para.trim())
@@ -260,8 +275,8 @@ function PaintingView({
         </div>
       </section>
 
-      <section aria-labelledby="download-heading" className="mt-8">
-        <h2 id="download-heading" className="text-2xl font-bold">
+      <section aria-labelledby="download-heading" className="section mt-12">
+        <h2 id="download-heading" className="text-2xl">
           {t.downloadTitle}
         </h2>
         <p className="hint mt-1">{t.downloadHint}</p>
@@ -295,10 +310,10 @@ function PaintingView({
       <img
         src={painting.thumbUrl}
         alt={t.imageAlt(title)}
-        className="mt-8 max-h-[70vh] w-full rounded-lg border border-line object-contain"
+        className="mt-12 max-h-[70vh] w-full object-contain"
       />
 
-      <nav aria-label={t.otherPaintings} className="mt-8 grid grid-cols-2 gap-3">
+      <nav aria-label={t.otherPaintings} className="mt-12 grid grid-cols-2 gap-3 border-t border-ink pt-5">
         {prev ? (
           <a className="btn" href={`#p=${encodeURIComponent(prev.id)}`}>
             ← {t.previous}
@@ -448,7 +463,7 @@ function AudioPlayer({
         {playing ? t.pause : current > 0 ? t.resume : t.play}
       </button>
 
-      <div role="alert" className="mt-2 font-semibold text-danger empty:hidden">
+      <div role="alert" className="mt-2 font-medium text-danger empty:hidden">
         {failed ? t.audioError : null}
       </div>
 
@@ -594,16 +609,16 @@ function OfflinePanel({ gallery, viewToken, t }: { gallery: PublicGallery; viewT
   };
 
   return (
-    <section aria-labelledby="offline-heading" className="card mt-6">
-      <h2 id="offline-heading" className="text-xl font-bold">
+    <section aria-labelledby="offline-heading" className="card mt-8">
+      <h2 id="offline-heading" className="text-lg">
         {t.offlineTitle}
       </h2>
-      <p role="status" className={`mt-1 ${state === 'ready' ? 'font-semibold text-ok' : ''}`}>
+      <p role="status" className={`mt-1 ${state === 'ready' ? 'font-medium text-ok' : ''}`}>
         {message[state]}
       </p>
       {state === 'downloading' && (
         <progress
-          className="mt-3 h-3 w-full accent-(--accent)"
+          className="mt-3 h-2 w-full accent-(--ink)"
           max={Math.max(1, progress.total)}
           value={progress.done}
           aria-label={t.offlineTitle}

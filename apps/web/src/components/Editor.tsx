@@ -15,6 +15,7 @@ import {
   saveTextFile,
 } from '@/lib/client';
 import { ImportSection } from './ImportSection';
+import { Masthead } from './Masthead';
 
 const POLL_MS = 2500;
 const MAX_FILES = 20;
@@ -86,8 +87,10 @@ export function Editor({ editToken }: { editToken: string }) {
 
   if (loadError) {
     return (
-      <main id="main" className="mx-auto max-w-2xl px-5 py-10">
-        <h1 className="text-3xl font-bold">Редактор галереї</h1>
+      <>
+      <Masthead note="Редактор" />
+      <main id="main" className="mx-auto max-w-3xl px-5 py-10">
+        <h1 className="text-3xl">Редактор галереї</h1>
         <p role="alert" className="notice mt-6">
           {loadError}
         </p>
@@ -97,27 +100,36 @@ export function Editor({ editToken }: { editToken: string }) {
           </a>
         </p>
       </main>
+      </>
     );
   }
 
   if (!gallery) {
     return (
-      <main id="main" className="mx-auto max-w-2xl px-5 py-10">
-        <p role="status">Завантажуємо галерею…</p>
-      </main>
+      <>
+        <Masthead note="Редактор" />
+        <main id="main" className="mx-auto max-w-3xl px-5 py-10">
+          <p role="status" className="text-muted">Завантажуємо галерею…</p>
+        </main>
+      </>
     );
   }
 
+  const total = gallery.paintings.length;
+  const ready = gallery.paintings.filter((p) => p.description?.status === 'ready').length;
+
   return (
-    <main id="main" className="mx-auto max-w-3xl px-5 py-8">
+    <>
+    <Masthead note="Редактор" />
+    <main id="main" className="mx-auto max-w-3xl px-5 pb-20 pt-10">
       <div role="status" aria-live="polite" className="sr-only">
         {announcement}
       </div>
 
-      <p className="text-base font-semibold uppercase tracking-wide text-accent">
-        CanvasCast · редактор
+      <h1 className="text-4xl leading-tight">{gallery.name}</h1>
+      <p className="mt-2 text-muted">
+        {total === 0 ? 'Картин ще немає' : `Картин: ${total} · з готовим описом: ${ready}`}
       </p>
-      <h1 className="mt-1 text-3xl font-bold leading-tight">{gallery.name}</h1>
 
       {gallery.demoMode && (
         <p className="notice mt-5">
@@ -134,6 +146,7 @@ export function Editor({ editToken }: { editToken: string }) {
       <PaintingsSection gallery={gallery} base={base} onGallery={applyGallery} announce={announce} />
       <DangerSection base={base} editToken={editToken} />
     </main>
+    </>
   );
 }
 
@@ -168,8 +181,8 @@ function ShareSection({
   }
 
   return (
-    <section aria-labelledby="share-heading" className="card mt-6">
-      <h2 id="share-heading" className="text-2xl font-bold">
+    <section aria-labelledby="share-heading" className="section">
+      <h2 id="share-heading" className="text-2xl">
         Посилання для відвідувачів
       </h2>
       {readyCount === 0 && (
@@ -185,7 +198,7 @@ function ShareSection({
           alt="QR-код посилання на аудіогід галереї"
           width={176}
           height={176}
-          className="size-44 shrink-0 rounded-lg border border-line bg-white"
+          className="size-44 shrink-0 border border-line bg-white p-1"
         />
         <div className="min-w-0 flex-1 space-y-3">
           <div>
@@ -214,10 +227,10 @@ function ShareSection({
         </div>
       </div>
 
-      <div className="notice mt-5">
+      <div className="notice mt-6">
         <p>
-          <strong>Збережіть посилання на цю сторінку.</strong> Це єдиний спосіб редагувати галерею:
-          облікових записів немає, і втрачене посилання відновити неможливо. Нікому його не
+          <strong>Збережіть посилання на цю сторінку</strong> — інакше редагувати галерею буде
+          неможливо: облікових записів немає, втрачене посилання не відновити. Нікому його не
           передавайте.
         </p>
         <button
@@ -257,8 +270,8 @@ function SettingsSection({ gallery, base, onGallery, announce }: SectionProps & 
   }
 
   return (
-    <section aria-labelledby="settings-heading" className="card mt-6">
-      <h2 id="settings-heading" className="text-2xl font-bold">
+    <section aria-labelledby="settings-heading" className="section">
+      <h2 id="settings-heading" className="text-2xl">
         Налаштування
       </h2>
       <form onSubmit={save} className="mt-4 grid gap-4 sm:grid-cols-[1fr_12rem]">
@@ -294,7 +307,7 @@ function SettingsSection({ gallery, base, onGallery, announce }: SectionProps & 
           Після зміни мови описи потрібно згенерувати заново — уже цією мовою. Описи попередньою
           мовою зберігаються.
         </p>
-        <div role="alert" className="font-semibold text-danger empty:hidden sm:col-span-2">
+        <div role="alert" className="font-medium text-danger empty:hidden sm:col-span-2">
           {error}
         </div>
         <div className="sm:col-span-2">
@@ -370,8 +383,8 @@ function UploadSection({ base, onGallery, announce }: SectionProps) {
   }
 
   return (
-    <section aria-labelledby="upload-heading" className="card mt-6">
-      <h2 id="upload-heading" className="text-2xl font-bold">
+    <section aria-labelledby="upload-heading" className="section">
+      <h2 id="upload-heading" className="text-2xl">
         Додати картини
       </h2>
       <label htmlFor="upload-input" className="label mt-4">
@@ -386,14 +399,14 @@ function UploadSection({ base, onGallery, announce }: SectionProps) {
         disabled={busy}
         aria-describedby="upload-hint"
         onChange={(e) => void upload(e.target.files)}
-        className="field file:mr-4 file:cursor-pointer file:rounded-md file:border-0 file:bg-accent file:px-4 file:py-2 file:font-semibold file:text-accent-ink"
+        className="file-field"
       />
       <p id="upload-hint" className="hint mt-2">
         JPEG, PNG або WebP, до 20 файлів за раз. Великі фото автоматично зменшуються перед
         відправкою. Знімайте картину рівно, без
         відблисків — від якості фото залежить якість опису.
       </p>
-      <div role="status" className="mt-3 font-semibold empty:hidden">
+      <div role="status" className="mt-3 font-medium empty:hidden">
         {busy ? progress || 'Завантажуємо…' : message}
       </div>
       {rejected.length > 0 && (
@@ -436,9 +449,9 @@ function PaintingsSection({ gallery, base, onGallery, announce }: SectionProps &
   }
 
   return (
-    <section aria-labelledby="paintings-heading" className="mt-8">
-      <h2 id="paintings-heading" className="text-2xl font-bold">
-        Картини ({paintings.length})
+    <section aria-labelledby="paintings-heading" className="section">
+      <h2 id="paintings-heading" className="section-title">
+        Картини <span className="section-num">{paintings.length}</span>
       </h2>
 
       {paintings.length === 0 ? (
@@ -455,14 +468,13 @@ function PaintingsSection({ gallery, base, onGallery, announce }: SectionProps &
               {missing === 0 ? 'Усі описи згенеровано' : `Згенерувати описи (${missing})`}
             </button>
             <p className="hint">
-              Спершу за бажанням заповніть відомості про картини — модель спирається на них як на
-              факти.
+              Відомості про картину, якщо їх заповнити заздалегідь, модель врахує як факти.
             </p>
           </div>
-          <div role="alert" className="mt-2 font-semibold text-danger empty:hidden">
+          <div role="alert" className="mt-2 font-medium text-danger empty:hidden">
             {error}
           </div>
-          <ol className="mt-5 space-y-6">
+          <ol className="mt-6 space-y-8">
             {paintings.map((p, i) => (
               <li key={p.id}>
                 <PaintingCard
@@ -605,8 +617,9 @@ function PaintingCard({
   return (
     <article aria-labelledby={`p-${uid}-title`} className="card">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <h3 id={`p-${uid}-title`} className="text-xl font-bold">
-          {index + 1}. {name}
+        <h3 id={`p-${uid}-title`} className="flex items-baseline gap-3 text-xl">
+          <span className="section-num">{String(index + 1).padStart(2, '0')}</span>
+          <span>{name}</span>
         </h3>
         <div className="flex flex-wrap gap-2">
           <button
@@ -645,7 +658,7 @@ function PaintingCard({
           src={painting.thumbUrl}
           alt={`Фото картини: ${name}`}
           loading="lazy"
-          className="max-h-72 w-full rounded-lg border border-line object-contain md:w-56"
+          className="max-h-72 w-full bg-paper object-contain md:w-56"
         />
 
         <form onSubmit={onSaveFacts} aria-label={`Відомості про картину: ${name}`}>
@@ -708,19 +721,23 @@ function PaintingCard({
           </button>
           <p
             role="status"
-            className={`font-semibold ${d?.status === 'failed' ? 'text-danger' : d?.status === 'ready' ? 'text-ok' : ''}`}
+            className={`flex items-center gap-2 font-medium ${d?.status === 'failed' ? 'text-danger' : d?.status === 'ready' ? 'text-ok' : 'text-muted'}`}
           >
+            <span
+              aria-hidden="true"
+              className={`inline-block size-2.5 shrink-0 rounded-full ${working ? 'animate-pulse' : ''} bg-current`}
+            />
             {statusText}
           </p>
         </div>
 
-        <div role="alert" className="mt-2 font-semibold text-danger empty:hidden">
+        <div role="alert" className="mt-2 font-medium text-danger empty:hidden">
           {error}
         </div>
 
         {d && d.uncertain.length > 0 && (
           <div className="notice mt-4">
-            <p className="font-semibold">Модель не впевнена — перевірте, будь ласка:</p>
+            <p className="font-medium">Модель не впевнена — перевірте, будь ласка:</p>
             <ul className="mt-1 list-disc pl-6">
               {d.uncertain.map((note, i) => (
                 <li key={i}>{note}</li>
@@ -830,14 +847,14 @@ function DangerSection({ base, editToken }: { base: string; editToken: string })
   }
 
   return (
-    <section aria-labelledby="danger-heading" className="mt-10 border-t border-line pt-6">
-      <h2 id="danger-heading" className="text-xl font-bold">
+    <section aria-labelledby="danger-heading" className="mt-20 border-t border-line pt-6">
+      <h2 id="danger-heading" className="text-xl">
         Видалення галереї
       </h2>
       <p className="hint mt-1">
         Усі зображення, описи й аудіо буде видалено назавжди, а QR-код перестане працювати.
       </p>
-      <div role="alert" className="mt-2 font-semibold text-danger empty:hidden">
+      <div role="alert" className="mt-2 font-medium text-danger empty:hidden">
         {error}
       </div>
       <button type="button" className="btn btn-danger mt-3" onClick={remove} disabled={busy}>

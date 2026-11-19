@@ -79,26 +79,30 @@ export function CreateGalleryForm() {
           </span>
         </label>
 
-        <div role="alert" className="text-danger font-semibold empty:hidden">
+        <div role="alert" className="font-medium text-danger empty:hidden">
           {error}
         </div>
 
         <button type="submit" className="btn btn-primary w-full" disabled={busy}>
           {busy ? 'Створюємо…' : 'Створити галерею'}
         </button>
-        <p className="hint">Реєстрація не потрібна. Ви отримаєте секретне посилання для редагування.</p>
+        <p className="hint">Без реєстрації: ви отримаєте секретне посилання для редагування.</p>
       </form>
 
       {known.length > 0 && (
-        <section aria-labelledby="known-heading" className="mt-8 border-t border-line pt-5">
-          <h3 id="known-heading" className="text-xl font-bold">
+        <section aria-labelledby="known-heading" className="mt-10">
+          <h3 id="known-heading" className="text-lg">
             Ваші галереї на цьому пристрої
           </h3>
-          <ul className="mt-2 space-y-1">
+          <ul className="mt-2 border-t border-line">
             {known.map((g) => (
-              <li key={g.editToken}>
-                <a className="link" href={`/e/${g.editToken}`}>
-                  {g.name || 'Галерея без назви'}
+              <li key={g.editToken} className="border-b border-line">
+                <a
+                  className="flex min-h-12 items-center justify-between gap-3 py-2 text-ink no-underline hover:text-accent"
+                  href={`/e/${g.editToken}`}
+                >
+                  <span className="min-w-0 truncate">{g.name || 'Галерея без назви'}</span>
+                  <span aria-hidden="true">→</span>
                 </a>
               </li>
             ))}

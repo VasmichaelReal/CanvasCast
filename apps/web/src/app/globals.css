@@ -1,35 +1,35 @@
 @import 'tailwindcss';
 
-/* Палітра: тепле «паперове» тло, чорнильний текст, теракотовий акцент.
-   Усі пари текст/тло мають контраст не нижче 7:1 (WCAG AAA для тексту). */
+/* Стилістика музейного каталогу: біле тло, чорний текст, тонкі лінії замість карток,
+   один кобальтовий акцент. Усі пари текст/тло мають контраст не нижче 7:1 (WCAG AAA). */
 :root {
-  --paper: #faf7f2;
+  --paper: #fbfbfa;
   --surface: #ffffff;
-  --ink: #1c1917;
-  --muted: #57534e;
-  --line: #d6d0c7;
-  --accent: #9a3412;
+  --ink: #111111;
+  --muted: #4d4d4d;
+  --line: #d4d4d0;
+  --accent: #1f36b8;
   --accent-ink: #ffffff;
-  --accent-soft: #fdf1e7;
-  --danger: #b91c1c;
-  --ok: #166534;
-  --warn-bg: #fef3c7;
-  --warn-ink: #713f12;
+  --accent-soft: #eef0fb;
+  --danger: #b3141b;
+  --ok: #17602f;
+  --warn-bg: #fff4cc;
+  --warn-ink: #5c3d00;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #151311;
-    --surface: #211e1b;
-    --ink: #f5f0e8;
-    --muted: #c4bcb0;
-    --line: #4a443d;
-    --accent: #fdba74;
-    --accent-ink: #1c1917;
-    --accent-soft: #33261a;
-    --danger: #fca5a5;
-    --ok: #86efac;
-    --warn-bg: #3a2f10;
+    --paper: #121212;
+    --surface: #1b1b1b;
+    --ink: #f1f1ee;
+    --muted: #bdbdb8;
+    --line: #3d3d3a;
+    --accent: #a9b8ff;
+    --accent-ink: #0b1033;
+    --accent-soft: #1c2140;
+    --danger: #ffa3a3;
+    --ok: #8ee6a8;
+    --warn-bg: #3a300c;
     --warn-ink: #fde68a;
   }
 }
@@ -47,6 +47,8 @@
   --color-ok: var(--ok);
   --color-warn-bg: var(--warn-bg);
   --color-warn-ink: var(--warn-ink);
+  --font-sans: var(--font-plex), system-ui, 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-serif: var(--font-literata), Georgia, 'Times New Roman', serif;
 }
 
 html {
@@ -57,58 +59,93 @@ html {
 body {
   background: var(--paper);
   color: var(--ink);
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-sans);
   font-size: 1.0625rem;
   line-height: 1.6;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
 }
 
 /* Добре видимий фокус для всіх інтерактивних елементів. */
 :focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 3px;
-  border-radius: 4px;
 }
 
 @layer components {
   /* Мінімум 48px заввишки — зручна ціль для дотику. */
   .btn {
-    @apply inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-ink bg-surface px-5 py-2 text-base font-semibold text-ink no-underline transition-colors;
+    @apply inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 border border-ink bg-transparent px-5 py-2 text-base font-medium text-ink no-underline transition-colors;
   }
   .btn:hover:not(:disabled) {
-    @apply bg-accent-soft;
+    @apply bg-ink text-paper;
   }
   .btn:disabled {
-    @apply cursor-not-allowed opacity-55;
+    @apply cursor-not-allowed opacity-45;
   }
   .btn-primary {
-    @apply border-accent bg-accent text-accent-ink;
+    @apply bg-ink text-paper;
   }
   .btn-primary:hover:not(:disabled) {
-    @apply bg-accent opacity-90;
+    @apply border-accent bg-accent text-accent-ink;
   }
   .btn-danger {
     @apply border-danger text-danger;
   }
+  .btn-danger:hover:not(:disabled) {
+    @apply bg-danger text-paper;
+  }
   .field {
-    @apply block min-h-12 w-full rounded-lg border-2 border-line bg-surface px-3 py-2 text-base text-ink;
+    @apply block min-h-12 w-full border border-line bg-surface px-3 py-2 text-base text-ink transition-colors;
+  }
+  .field:hover:not(:disabled) {
+    @apply border-muted;
   }
   .field:focus-visible {
-    @apply border-accent;
+    @apply border-ink;
+    outline-offset: 0;
   }
   .label {
-    @apply mb-1 block text-base font-semibold;
+    @apply mb-1 block text-[0.95rem] font-medium;
   }
+  /* Рамка для окремих об'єктів: картина, картка імпорту, плеєр. */
   .card {
-    @apply rounded-xl border border-line bg-surface p-5;
+    @apply border border-line bg-surface p-5;
+  }
+  /* Розділ сторінки — відкривається лінією, а не огортається рамкою. */
+  .section {
+    @apply mt-14 border-t border-ink pt-5;
+  }
+  .section-title {
+    @apply flex items-baseline gap-3 text-2xl;
+  }
+  .section-num {
+    @apply font-sans text-base font-normal tabular-nums text-muted;
   }
   .hint {
     @apply text-[0.95rem] text-muted;
   }
   .notice {
-    @apply rounded-lg bg-warn-bg px-4 py-3 text-warn-ink;
+    @apply border-l-4 border-warn-ink bg-warn-bg px-4 py-3 text-warn-ink;
   }
   .link {
-    @apply font-semibold text-accent underline underline-offset-4;
+    @apply font-medium text-accent underline decoration-1 underline-offset-4 hover:decoration-2;
+  }
+  .file-field {
+    @apply block min-h-12 w-full cursor-pointer border border-line bg-surface px-3 py-1.5 text-base text-ink file:mr-4 file:min-h-9 file:cursor-pointer file:border file:border-ink file:bg-ink file:px-4 file:font-medium file:text-paper;
   }
 }
 
