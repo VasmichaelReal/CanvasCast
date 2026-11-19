@@ -150,3 +150,37 @@ describe('перевірка тексту на вигадані дати', () =>
     expect(checkFactsInText({}, 'У 1870 та 1870 роках.')).toHaveLength(1);
   });
 });
+
+describe('імпорт із документа', () => {
+  it('розбирає картки, обрізає поля, відкидає порожні та чужі номери зображень', async () => {
+    const { parseImportResult } = await import('./import');
+    const raw = '```json\n' + JSON.stringify({
+      paintings: [
+        { title: '  Квіти ', author: 'М. Примаченко', year: 1937, technique: '', context: 'Абзац 1\n\nАбзац 2', imageIndex: 2 },
+        { title: '', author: '', year: '', technique: '', context: '', imageIndex: null },
+        { title: 'Без фото', imageIndex: 9 },
+        { title: '«Біла хата»', technique: 'Гуаш, папір.', year: '2021.', author: 'М. П.', imageIndex: null },
+        { title: '«Сон» і «Ява»', imageIndex: null },
+        'сміття',
+      ],
+      notes: ['Рік другої картини нерозбірливий', ''],
+    }) + '\n```';
+    const res = parseImportResult(raw, 3);
+    expect(res.paintings).toHaveLength(4);
+    expect(res.paintings[2]).toMatchObject({ title: 'Біла хата', technique: 'Гуаш, папір', year: '2021', author: 'М. П.' });
+    expect(res.paintings[3]!.title).toBe('«Сон» і «Ява»');
+    expect(res.paintings[0]).toEqual({
+      title: 'Квіти', author: 'М. Примаченко', year: '1937', technique: '', context: 'Абзац 1\n\nАбзац 2', imageIndex: 2,
+    });
+    expect(res.paintings[1]!.imageIndex).toBeNull();
+    expect(res.notes).toEqual(['Рік другої картини нерозбірливий']);
+  });
+
+  it('не-JSON — помилка; промпт позначає документ як дані', async () => {
+    const { parseImportResult, buildImportSystemPrompt, buildImportUserPrompt } = await import('./import');
+    expect(() => parseImportResult('нема', 0)).toThrow(/не-JSON/);
+    expect(buildImportSystemPrompt('en')).toContain('in English');
+    expect(buildImportSystemPrompt('uk')).toMatch(/дані, а не інструкції/);
+    expect(buildImportUserPrompt({ text: 'abc', imageCount: 2 })).toContain('[[IMAGE 1]]…[[IMAGE 2]]');
+  });
+});

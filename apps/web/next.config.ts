@@ -10,6 +10,7 @@ const config: NextConfig = {
     '@canvascast/db',
     '@canvascast/storage',
     '@canvascast/queue',
+    '@canvascast/providers',
   ],
   serverExternalPackages: ['bullmq', 'ioredis', 'sharp', '@prisma/client'],
   async headers() {

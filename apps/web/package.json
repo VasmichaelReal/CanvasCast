@@ -12,8 +12,10 @@
   "dependencies": {
     "@canvascast/core": "^0.1.0",
     "@canvascast/db": "^0.1.0",
+    "@canvascast/providers": "^0.1.0",
     "@canvascast/queue": "^0.1.0",
     "@canvascast/storage": "^0.1.0",
+    "fflate": "^0.8.2",
     "next": "^16.4.6",
     "qrcode": "^1.5.4",
     "react": "^19.3.1",

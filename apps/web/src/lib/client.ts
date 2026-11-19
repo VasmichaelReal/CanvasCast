@@ -78,7 +78,7 @@ const UPLOAD_MAX_SIDE = 2400; // сервер однаково зменшує д
  * перекодовані в JPEG. Якщо браузер не зміг прочитати зображення, повертає
  * оригінал: сервер перевірить його сам і пояснить відмову.
  */
-export async function prepareImageForUpload(file: File): Promise<Blob> {
+export async function prepareImageForUpload(file: Blob): Promise<Blob> {
   if (file.size <= UPLOAD_TARGET_BYTES) return file;
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });

@@ -14,6 +14,7 @@ import {
   rememberGallery,
   saveTextFile,
 } from '@/lib/client';
+import { ImportSection } from './ImportSection';
 
 const POLL_MS = 2500;
 const MAX_FILES = 20;
@@ -129,6 +130,7 @@ export function Editor({ editToken }: { editToken: string }) {
       <ShareSection gallery={gallery} editToken={editToken} announce={announce} />
       <SettingsSection gallery={gallery} base={base} onGallery={applyGallery} announce={announce} />
       <UploadSection base={base} onGallery={applyGallery} announce={announce} />
+      <ImportSection gallery={gallery} base={base} onGallery={applyGallery} announce={announce} />
       <PaintingsSection gallery={gallery} base={base} onGallery={applyGallery} announce={announce} />
       <DangerSection base={base} editToken={editToken} />
     </main>
@@ -440,7 +442,7 @@ function PaintingsSection({ gallery, base, onGallery, announce }: SectionProps &
       </h2>
 
       {paintings.length === 0 ? (
-        <p className="hint mt-2">Поки що порожньо. Додайте фото картин вище.</p>
+        <p className="hint mt-2">Поки що порожньо. Додайте фото картин або імпортуйте документ вище.</p>
       ) : (
         <>
           <div className="mt-3 flex flex-wrap items-center gap-4">

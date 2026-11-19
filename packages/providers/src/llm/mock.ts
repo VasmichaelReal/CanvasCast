@@ -1,5 +1,5 @@
-import type { GeneratedDescription } from '@canvascast/core';
-import type { DescribeInput, LLMProvider } from './types';
+import { IMPORT_FIELD_LIMITS, MAX_IMPORTED_PAINTINGS, type GeneratedDescription, type ImportResult, type ImportedPainting } from '@canvascast/core';
+import type { DescribeInput, ExtractInput, LLMProvider } from './types';
 
 /**
  * Заглушка без AI: дає змогу пройти весь цикл (завантаження → опис → озвучення →
@@ -36,5 +36,48 @@ export class MockLLM implements LLMProvider {
       suggestedTitle: facts.title ? '' : 'Картина без назви',
       uncertain: ['Демо-текст: AI-модель не підключено. Додайте GEMINI_API_KEY і згенеруйте опис знову.'],
     };
+  }
+
+  /**
+   * Без моделі документ не зрозуміти, тож розкладаємо його грубо: кожен абзац (блок,
+   * відокремлений порожнім рядком чи зображенням) — окрема картка, перший рядок — назва.
+   */
+  async extractPaintings(input: ExtractInput): Promise<ImportResult> {
+    const demoNote =
+      input.lang === 'en'
+        ? 'Demo mode: no AI model is connected, so the document was split into cards mechanically. Check every card.'
+        : 'Демо-режим: AI-модель не підключено, тож документ розкладено на картки механічно. Перевірте кожну картку.';
+    if (input.text === undefined) {
+      const note =
+        input.lang === 'en'
+          ? 'Demo mode cannot read PDF files. Add GEMINI_API_KEY or import a DOCX/TXT document.'
+          : 'У демо-режимі PDF не читається. Додайте GEMINI_API_KEY або імпортуйте документ DOCX чи TXT.';
+      return { paintings: [], notes: [note] };
+    }
+
+    const L = IMPORT_FIELD_LIMITS;
+    const paintings: ImportedPainting[] = [];
+    let pendingImage: number | null = null;
+    for (const chunk of input.text.split(/(\[\[IMAGE \d+\]\])|\n\s*\n/)) {
+      if (!chunk) continue;
+      const marker = /^\[\[IMAGE (\d+)\]\]$/.exec(chunk);
+      if (marker) {
+        pendingImage = Number(marker[1]);
+        continue;
+      }
+      const lines = chunk.split('\n').map((l) => l.trim()).filter((l) => /\p{L}/u.test(l));
+      if (lines.length === 0) continue;
+      paintings.push({
+        title: lines[0]!.slice(0, L.title),
+        author: '',
+        year: '',
+        technique: '',
+        context: lines.slice(1).join('\n').slice(0, L.context),
+        imageIndex: pendingImage,
+      });
+      pendingImage = null;
+      if (paintings.length >= MAX_IMPORTED_PAINTINGS) break;
+    }
+    return { paintings, notes: [demoNote] };
   }
 }

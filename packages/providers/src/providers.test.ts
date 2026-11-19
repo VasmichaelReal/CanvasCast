@@ -130,6 +130,59 @@ describe('GeminiLLM', () => {
   });
 });
 
+describe('імпорт документа', () => {
+  it('Gemini: PDF іде файлом, текст — з маркерами; відповідь розбирається', async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          candidates: [{ content: { parts: [{ text: JSON.stringify({
+            paintings: [{ title: 'Квіти', author: '', year: '1937', technique: '', context: '', imageIndex: 1 }],
+            notes: [],
+          }) }] } }],
+        }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const llm = new GeminiLLM('K', 'm');
+
+    const fromText = await llm.extractPaintings({ lang: 'uk', text: 'Квіти [[IMAGE 1]]', imageCount: 1 });
+    expect(fromText.paintings[0]).toMatchObject({ title: 'Квіти', imageIndex: 1 });
+    let body = JSON.parse((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
+    expect(body.systemInstruction.parts[0].text).toContain('помічник куратора');
+    expect(body.contents[0].parts).toHaveLength(1);
+    expect(body.contents[0].parts[0].text).toContain('<document>\nКвіти [[IMAGE 1]]');
+
+    // Для PDF зображень немає, тож номер 1 відкидається.
+    const fromPdf = await llm.extractPaintings({
+      lang: 'uk', file: { mimeType: 'application/pdf', data: Buffer.from('%PDF-1') }, imageCount: 0,
+    });
+    expect(fromPdf.paintings[0]!.imageIndex).toBeNull();
+    body = JSON.parse((fetchMock.mock.calls[1] as unknown as [string, RequestInit])[1].body as string);
+    expect(body.contents[0].parts[0].inlineData.mimeType).toBe('application/pdf');
+  });
+
+  it('MockLLM: абзац — картка, перший рядок — назва, зображення перед абзацом — його фото', async () => {
+    const res = await new MockLLM().extractPaintings({
+      lang: 'uk',
+      text: 'Квіти\nОлія, 1937\n\n[[IMAGE 1]]\nЗвір\n\n---\n\nБез фото',
+      imageCount: 1,
+    });
+    expect(res.paintings.map((p) => [p.title, p.imageIndex])).toEqual([
+      ['Квіти', null],
+      ['Звір', 1],
+      ['Без фото', null],
+    ]);
+    expect(res.paintings[0]!.context).toBe('Олія, 1937');
+    expect(res.notes[0]).toContain('Демо-режим');
+
+    const pdf = await new MockLLM().extractPaintings({
+      lang: 'en', file: { mimeType: 'application/pdf', data: Buffer.alloc(0) }, imageCount: 0,
+    });
+    expect(pdf.paintings).toEqual([]);
+  });
+});
+
 describe('аудіо', () => {
   it('WAV-заголовок описує саме ті дані, що йдуть за ним', () => {
     const pcm = Buffer.alloc(48_000); // 1 с, 24 кГц, моно, 16 біт

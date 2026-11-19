@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
-import { MAX_FILES_PER_UPLOAD, env, storageKeys } from '@canvascast/core';
+import { MAX_FILES_PER_UPLOAD, env, paintingFactsSchema, storageKeys, type PaintingFactsInput } from '@canvascast/core';
 import { prisma } from '@canvascast/db';
 import { putObject } from '@canvascast/storage';
 import { NOT_FOUND, baseUrl, clientIp, findGalleryForEdit, jsonError, limited } from '@/lib/api';
@@ -9,7 +9,11 @@ import { processUpload } from '@/lib/images';
 
 type Ctx = { params: Promise<{ editToken: string }> };
 
-/** Завантаження одного чи кількох зображень (multipart, поле "files"). */
+/**
+ * Завантаження одного чи кількох зображень (multipart, поле "files").
+ * Необов'язкове поле "facts" (JSON) — відомості про картину; лише для одного файлу
+ * (так додає картки імпорт із документа).
+ */
 export async function POST(req: Request, { params }: Ctx) {
   const gallery = await findGalleryForEdit((await params).editToken);
   if (!gallery) return NOT_FOUND();
@@ -28,6 +32,21 @@ export async function POST(req: Request, { params }: Ctx) {
   if (files.length === 0) return jsonError(400, 'Не вибрано жодного файлу');
   if (files.length > MAX_FILES_PER_UPLOAD) {
     return jsonError(400, `За один раз можна завантажити до ${MAX_FILES_PER_UPLOAD} зображень`);
+  }
+
+  let facts: PaintingFactsInput = {};
+  const rawFacts = form.get('facts');
+  if (typeof rawFacts === 'string' && rawFacts) {
+    if (files.length !== 1) return jsonError(400, 'Відомості можна передати лише для одного зображення');
+    let json: unknown = null;
+    try {
+      json = JSON.parse(rawFacts);
+    } catch {
+      /* перевірить схема */
+    }
+    const parsed = paintingFactsSchema.safeParse(json);
+    if (!parsed.success) return jsonError(400, 'Некоректні відомості про картину');
+    facts = parsed.data;
   }
 
   const existing = await prisma.painting.aggregate({
@@ -60,7 +79,7 @@ export async function POST(req: Request, { params }: Ctx) {
         putObject(thumbKey, thumb, 'image/jpeg'),
       ]);
       await prisma.painting.create({
-        data: { id, galleryId: gallery.id, position: ++position, imageKey, thumbKey },
+        data: { id, galleryId: gallery.id, position: ++position, imageKey, thumbKey, ...facts },
       });
       added++;
     } catch (err) {

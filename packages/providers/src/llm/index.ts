@@ -4,7 +4,7 @@ import { GeminiLLM } from './gemini';
 import { MockLLM } from './mock';
 import type { LLMProvider } from './types';
 
-export type { DescribeInput, LLMProvider } from './types';
+export type { DescribeInput, ExtractInput, LLMProvider } from './types';
 export { GeminiLLM, MockLLM };
 export { ProviderError } from '../errors';
 

@@ -20,15 +20,19 @@ export const updateGallerySchema = z.object({
   lang: langSchema.optional(),
 });
 
-export const updatePaintingSchema = z.object({
+/** Відомості про картину від власника (зокрема заповнені імпортом із документа). */
+export const paintingFactsSchema = z.object({
   title: optionalText(200),
   author: optionalText(200),
   year: optionalText(60),
   technique: optionalText(200),
   context: optionalText(2000),
+}).partial();
+
+export const updatePaintingSchema = paintingFactsSchema.extend({
   /** Зсув у списку: -1 вгору, +1 вниз. */
   move: z.union([z.literal(-1), z.literal(1)]).optional(),
-}).partial();
+});
 
 export const updateDescriptionSchema = z.object({
   text: trimmed(8000).min(1),
@@ -36,3 +40,5 @@ export const updateDescriptionSchema = z.object({
 
 export const ALLOWED_IMAGE_FORMATS = ['jpeg', 'png', 'webp'] as const;
 export const MAX_FILES_PER_UPLOAD = 20;
+
+export type PaintingFactsInput = z.infer<typeof paintingFactsSchema>;

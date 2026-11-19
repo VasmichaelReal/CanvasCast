@@ -1,13 +1,27 @@
 import {
+  buildImportSystemPrompt,
+  buildImportUserPrompt,
   buildSystemPrompt,
   buildUserPrompt,
   parseGeneratedDescription,
+  parseImportResult,
   type GeneratedDescription,
+  type ImportResult,
 } from '@canvascast/core';
 import { ProviderError, isRetryableStatus } from '../errors';
-import type { DescribeInput, LLMProvider } from './types';
+import type { DescribeInput, ExtractInput, LLMProvider } from './types';
 
 const API = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+type GeminiPart = { text: string } | { inlineData: { mimeType: string; data: string } };
+
+interface GenerateRequest {
+  system: string;
+  parts: GeminiPart[];
+  temperature: number;
+  timeoutMs: number;
+  schema: Record<string, unknown>;
+}
 
 interface GeminiResponse {
   candidates?: Array<{
@@ -33,10 +47,71 @@ export class GeminiLLM implements LLMProvider {
   }
 
   async describe(input: DescribeInput): Promise<GeneratedDescription> {
+    const text = await this.generate({
+      system: buildSystemPrompt(input.lang),
+      parts: [
+        { inlineData: { mimeType: 'image/jpeg', data: input.image.toString('base64') } },
+        { text: buildUserPrompt(input.facts) },
+      ],
+      temperature: 0.8,
+      timeoutMs: 120_000,
+      schema: {
+        type: 'OBJECT',
+        properties: {
+          description: { type: 'STRING' },
+          suggestedTitle: { type: 'STRING' },
+          uncertain: { type: 'ARRAY', items: { type: 'STRING' } },
+        },
+        required: ['description', 'suggestedTitle', 'uncertain'],
+      },
+    });
+    return parseGeneratedDescription(text);
+  }
+
+  async extractPaintings(input: ExtractInput): Promise<ImportResult> {
+    const parts: GeminiPart[] = [];
+    if (input.file) {
+      parts.push({ inlineData: { mimeType: input.file.mimeType, data: input.file.data.toString('base64') } });
+    }
+    parts.push({ text: buildImportUserPrompt(input) });
+    const text = await this.generate({
+      system: buildImportSystemPrompt(input.lang),
+      parts,
+      // Тут потрібна точність переписування, а не художність.
+      temperature: 0.1,
+      timeoutMs: 120_000,
+      schema: {
+        type: 'OBJECT',
+        properties: {
+          paintings: {
+            type: 'ARRAY',
+            items: {
+              type: 'OBJECT',
+              properties: {
+                title: { type: 'STRING' },
+                author: { type: 'STRING' },
+                year: { type: 'STRING' },
+                technique: { type: 'STRING' },
+                context: { type: 'STRING' },
+                imageIndex: { type: 'INTEGER', nullable: true },
+              },
+              required: ['title', 'author', 'year', 'technique', 'context', 'imageIndex'],
+            },
+          },
+          notes: { type: 'ARRAY', items: { type: 'STRING' } },
+        },
+        required: ['paintings', 'notes'],
+      },
+    });
+    return parseImportResult(text, input.imageCount);
+  }
+
+  /** Запит до основної моделі, а за перевантаження чи вичерпаної квоти — до резервної. */
+  private async generate(req: GenerateRequest): Promise<string> {
     let lastError: unknown;
     for (const model of this.models) {
       try {
-        return await this.describeWith(model, input);
+        return await this.generateWith(model, req);
       } catch (err) {
         lastError = err;
         // Помилку запиту (поганий ключ, відмова фільтра) інша модель не виправить.
@@ -46,36 +121,20 @@ export class GeminiLLM implements LLMProvider {
     throw lastError;
   }
 
-  private async describeWith(model: string, input: DescribeInput): Promise<GeneratedDescription> {
+  private async generateWith(model: string, req: GenerateRequest): Promise<string> {
     let res: Response;
     try {
       res = await fetch(`${API}/${model}:generateContent`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-goog-api-key': this.apiKey },
-        signal: AbortSignal.timeout(120_000),
+        signal: AbortSignal.timeout(req.timeoutMs),
         body: JSON.stringify({
-          systemInstruction: { parts: [{ text: buildSystemPrompt(input.lang) }] },
-          contents: [
-            {
-              role: 'user',
-              parts: [
-                { inlineData: { mimeType: 'image/jpeg', data: input.image.toString('base64') } },
-                { text: buildUserPrompt(input.facts) },
-              ],
-            },
-          ],
+          systemInstruction: { parts: [{ text: req.system }] },
+          contents: [{ role: 'user', parts: req.parts }],
           generationConfig: {
-            temperature: 0.8,
+            temperature: req.temperature,
             responseMimeType: 'application/json',
-            responseSchema: {
-              type: 'OBJECT',
-              properties: {
-                description: { type: 'STRING' },
-                suggestedTitle: { type: 'STRING' },
-                uncertain: { type: 'ARRAY', items: { type: 'STRING' } },
-              },
-              required: ['description', 'suggestedTitle', 'uncertain'],
-            },
+            responseSchema: req.schema,
           },
         }),
       });
@@ -101,7 +160,7 @@ export class GeminiLLM implements LLMProvider {
     if (!text) {
       throw new ProviderError(`Gemini не повернула тексту (finishReason: ${candidate?.finishReason ?? '?'})`);
     }
-    return parseGeneratedDescription(text);
+    return text;
   }
 }
 
