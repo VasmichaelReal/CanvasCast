@@ -1,8 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api, jsonBody, readKnownGalleries, rememberGallery, type KnownGallery } from '@/lib/client';
+import {
+  api,
+  importKnownGalleries,
+  jsonBody,
+  readKnownGalleries,
+  rememberGallery,
+  saveTextFile,
+  serializeKnownGalleries,
+  type KnownGallery,
+} from '@/lib/client';
 
 export function CreateGalleryForm() {
   const router = useRouter();
@@ -109,6 +118,72 @@ export function CreateGalleryForm() {
           </ul>
         </section>
       )}
+
+      <TransferList known={known} onChange={setKnown} />
     </>
+  );
+}
+
+/** Перенесення списку галерей між пристроями файлом — без облікових записів. */
+function TransferList({ known, onChange }: { known: KnownGallery[]; onChange: (list: KnownGallery[]) => void }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
+
+  function exportList() {
+    const date = new Date().toISOString().slice(0, 10);
+    saveTextFile(`canvascast-galleries-${date}.json`, serializeKnownGalleries(known));
+    setMessage({ text: `Файл зі списком збережено (галерей: ${known.length}).`, error: false });
+  }
+
+  async function importList(file: File | undefined) {
+    if (!file) return;
+    try {
+      if (file.size > 1024 * 1024) throw new Error('Файл завеликий для списку галерей.');
+      const { list, added } = importKnownGalleries(await file.text());
+      onChange(list);
+      setMessage({
+        text: added > 0 ? `Додано галерей: ${added}.` : 'Усі галереї з файлу вже є в списку.',
+        error: false,
+      });
+    } catch (err) {
+      setMessage({ text: err instanceof Error ? err.message : 'Не вдалося прочитати файл.', error: true });
+    } finally {
+      if (input.current) input.current.value = '';
+    }
+  }
+
+  return (
+    <section aria-labelledby="transfer-heading" className={known.length > 0 ? 'mt-6' : 'mt-10'}>
+      <h3 id="transfer-heading" className={known.length > 0 ? 'sr-only' : 'text-lg'}>
+        Перенести список галерей
+      </h3>
+      <div className="flex flex-wrap gap-3">
+        {known.length > 0 && (
+          <button type="button" className="btn" onClick={exportList}>
+            Експортувати список
+          </button>
+        )}
+        <button type="button" className="btn" onClick={() => input.current?.click()}>
+          Імпортувати список
+        </button>
+        <input
+          ref={input}
+          type="file"
+          accept=".json,.txt,application/json,text/plain"
+          className="sr-only"
+          tabIndex={-1}
+          aria-hidden="true"
+          onChange={(e) => void importList(e.target.files?.[0])}
+        />
+      </div>
+      <p className="hint mt-2">
+        {known.length > 0
+          ? 'Щоб відкрити ці галереї на іншому пристрої, збережіть файл і імпортуйте його там. Файл містить секретні посилання для редагування — не пересилайте його стороннім.'
+          : 'Створювали галереї на іншому пристрої? Імпортуйте файл зі списком або текстовий файл із посиланнями на редактор.'}
+      </p>
+      <p role="status" className={`mt-2 font-medium empty:hidden ${message?.error ? 'text-danger' : ''}`}>
+        {message?.text}
+      </p>
+    </section>
   );
 }

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { audioExtension, descriptionAsText, downloadFileName } from './client';
+import {
+  audioExtension,
+  descriptionAsText,
+  downloadFileName,
+  mergeKnownGalleries,
+  parseKnownGalleries,
+  serializeKnownGalleries,
+} from './client';
 
 describe('downloadFileName', () => {
   it('зберігає кирилицю й прибирає заборонені символи', () => {
@@ -28,5 +35,35 @@ describe('descriptionAsText', () => {
   });
   it('без відомостей не лишає порожнього рядка після назви', () => {
     expect(descriptionAsText({ title: 'Назва', text: 'Текст' })).toBe('Назва\n\nТекст\n');
+  });
+});
+
+describe('експорт та імпорт списку галерей', () => {
+  const a = { name: 'Перша', editToken: 'A'.repeat(32), createdAt: 2 };
+  const b = { name: 'Друга', editToken: 'b_-'.repeat(10) + 'bb', createdAt: 1 };
+
+  it('читає власний файл експорту, зокрема з BOM', () => {
+    expect(parseKnownGalleries('\uFEFF' + serializeKnownGalleries([a, b]))).toEqual([a, b]);
+  });
+
+  it('відкидає записи з некоректним токеном і дублікати', () => {
+    const text = JSON.stringify([a, a, { name: 'x', editToken: 'short' }, null]);
+    expect(parseKnownGalleries(text)).toEqual([a]);
+  });
+
+  it('знаходить посилання на редактор у звичайному тексті', () => {
+    const text = `Моя галерея: https://canvascast.example/e/${a.editToken}\nще /e/${b.editToken}`;
+    expect(parseKnownGalleries(text).map((g) => g.editToken)).toEqual([a.editToken, b.editToken]);
+  });
+
+  it('повідомляє, якщо галерей не знайдено', () => {
+    expect(() => parseKnownGalleries('просто текст')).toThrow(/не знайдено/);
+  });
+
+  it('не перезаписує наявні галереї й рахує лише нові', () => {
+    const renamed = { ...a, name: 'Стара назва' };
+    const { list, added } = mergeKnownGalleries([a], [renamed, b]);
+    expect(added).toBe(1);
+    expect(list).toEqual([a, b]);
   });
 });

@@ -39,6 +39,9 @@ export interface KnownGallery {
 }
 
 const KNOWN_KEY = 'cc-my-galleries';
+const KNOWN_LIMIT = 100;
+const EXPORT_FORMAT = 'canvascast-galleries';
+const TOKEN_RE = /^[A-Za-z0-9_-]{32}$/;
 
 export function readKnownGalleries(): KnownGallery[] {
   try {
@@ -52,10 +55,81 @@ export function readKnownGalleries(): KnownGallery[] {
 export function rememberGallery(entry: KnownGallery): void {
   try {
     const rest = readKnownGalleries().filter((g) => g.editToken !== entry.editToken);
-    localStorage.setItem(KNOWN_KEY, JSON.stringify([entry, ...rest].slice(0, 30)));
+    localStorage.setItem(KNOWN_KEY, JSON.stringify([entry, ...rest].slice(0, KNOWN_LIMIT)));
   } catch {
     /* сховище недоступне (приватний режим) — не критично */
   }
+}
+
+/** Файл для перенесення списку на інший пристрій. Містить секретні токени редагування. */
+export function serializeKnownGalleries(list: KnownGallery[]): string {
+  return JSON.stringify({ format: EXPORT_FORMAT, version: 1, galleries: list }, null, 2);
+}
+
+/**
+ * Читає файл експорту. Якщо це не наш JSON — шукає в тексті посилання на редактор
+ * (`…/e/<токен>`), тож підійде й нотатка зі збереженими посиланнями.
+ */
+export function parseKnownGalleries(text: string): KnownGallery[] {
+  const clean = text.replace(/^﻿/, '').trim();
+  const found = new Map<string, KnownGallery>();
+  const add = (g: KnownGallery) => {
+    if (TOKEN_RE.test(g.editToken) && !found.has(g.editToken)) found.set(g.editToken, g);
+  };
+
+  let data: unknown = null;
+  try {
+    data = JSON.parse(clean);
+  } catch {
+    /* не JSON — шукаємо посилання нижче */
+  }
+  const items = Array.isArray(data)
+    ? data
+    : data && typeof data === 'object' && Array.isArray((data as { galleries?: unknown }).galleries)
+      ? (data as { galleries: unknown[] }).galleries
+      : null;
+
+  if (items) {
+    for (const item of items) {
+      if (!item || typeof item !== 'object') continue;
+      const { name, editToken, createdAt } = item as Record<string, unknown>;
+      if (typeof editToken !== 'string') continue;
+      add({
+        name: typeof name === 'string' ? name.slice(0, 120) : '',
+        editToken,
+        createdAt: typeof createdAt === 'number' && Number.isFinite(createdAt) ? createdAt : Date.now(),
+      });
+    }
+  } else {
+    for (const match of clean.matchAll(/\/e\/([A-Za-z0-9_-]{32})(?![A-Za-z0-9_-])/g)) {
+      add({ name: '', editToken: match[1]!, createdAt: Date.now() });
+    }
+  }
+
+  if (found.size === 0) throw new Error('У файлі не знайдено жодної галереї CanvasCast.');
+  return [...found.values()];
+}
+
+/** Додає галереї з файлу до наявного списку. Наявні записи не перезаписуються. */
+export function mergeKnownGalleries(
+  current: KnownGallery[],
+  incoming: KnownGallery[],
+): { list: KnownGallery[]; added: number } {
+  const known = new Set(current.map((g) => g.editToken));
+  const fresh = incoming.filter((g) => !known.has(g.editToken));
+  const list = [...current, ...fresh].sort((a, b) => b.createdAt - a.createdAt).slice(0, KNOWN_LIMIT);
+  return { list, added: fresh.length };
+}
+
+/** Імпортує список у сховище браузера й повертає оновлений список. */
+export function importKnownGalleries(text: string): { list: KnownGallery[]; added: number } {
+  const result = mergeKnownGalleries(readKnownGalleries(), parseKnownGalleries(text));
+  try {
+    localStorage.setItem(KNOWN_KEY, JSON.stringify(result.list));
+  } catch {
+    throw new Error('Браузер не дозволяє зберегти список (можливо, увімкнено приватний режим).');
+  }
+  return result;
 }
 
 export function forgetGallery(editToken: string): void {
